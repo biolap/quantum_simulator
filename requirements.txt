@@ -1,0 +1,9 @@
+numpy
+scipy
+matplotlib
+PyQt6
+pyqtgraph
+pyopengl
+numba
+Pillow
+numexpr
