@@ -1,12 +1,8 @@
 import numpy as np
-from scipy import interpolate
+import scipy.sparse as sp
 from time import perf_counter as pc
 from time import time
 from .field import Field
-from .wavefunctions import make_wavelines, surf_smoothing
-from quantumwaves.interpolation import cubic_interp1d
-import scipy.sparse as sp
-import scipy.sparse.linalg
 from pathlib import Path
 from schrodinger.solve import solve
 from schrodinger import util
@@ -51,7 +47,6 @@ class Simulate:
         try:
             n = self.n
             step = self.step
-            dt = self.dt
             self.counter = 0
             self.x_axis = np.linspace(-self.size / 2, self.size / 2, n)
             self.y_axis = np.linspace(-self.size / 2, self.size / 2, n)
@@ -79,7 +74,6 @@ class Simulate:
 
         self.start_time = pc()
         self.i_time = pc()
-
 
     def simulate_frame(self, debug=True):
         """Выполняет один шаг симуляции."""
@@ -125,8 +119,6 @@ class Simulate:
             self.print_update()
         self.counter += 1
         return self.wave_function
-
-    # ... (остальные методы)
 
     def collapse_wavefunction(self, num_samples=1, collapse_width=10):
         """
@@ -241,11 +233,11 @@ class Simulate:
     def save_wave(self, wave_function, save_path, frame_index):
         """Сохраняет волновую функцию в файл."""
 
-        filename = Path(save_path) / f"wavefunction_{frame_index:04d}.npy"  # Используем Path
+        filename = Path(save_path) / f"wavefunction_{frame_index:04d}.npy"
         np.save(filename, wave_function)
         
     def collision(self):
-        self.simulation_initialize(x0=[0, 0], y0=[0, 1], k_x=[0, 0], k_y=[0, 90000], a_x=[10.2, 10.2], a_y=[10.2, 10.2]) # a_x и a_y увеличены
+        self.simulation_initialize(x0=[0, 0], y0=[0, 1], k_x=[0, 0], k_y=[0, 90000], a_x=[1.2, 1.2], a_y=[1.2, 1.2])
 
     def collision1(self):
         self.simulation_initialize(x0=[0, 0], y0=[0, 1.5], k_x=[10, 0], k_y=[0, 90000], a_x=[.15, .15], a_y=[.15, .15])

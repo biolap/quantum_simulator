@@ -1,22 +1,12 @@
 import sys
 import numpy as np
-import pyqtgraph as pg
 import pyqtgraph.opengl as gl
-from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QComboBox, QPushButton, QCheckBox
-from PyQt6.QtCore import Qt, QTimer
-from matplotlib.cm import get_cmap
-from numba import njit
-from pathlib import Path
-from pyqtgraph import Vector
 import matplotlib.pyplot as plt
-
+from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QComboBox, QPushButton, QCheckBox
+from PyQt6.QtCore import QTimer
+from pathlib import Path
 from schrodinger.simulation import Simulate
-from schrodinger.solve import solve
-from schrodinger.field import Field
 from schrodinger.wavefunctions import make_wavelines, surf_smoothing
-
-from quantumwaves.interpolation import cubic_interp1d
-from quantumwaves.gridlines import make_gridlines
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -119,12 +109,14 @@ class MainWindow(QWidget):
         self.timer.start(0)
         
     def stop_simulation(self):
-        """Останавливает симуляцию."""
+        """Останавливает симуляцию и очищает ресурсы."""
         if self.sim is not None:
             self.timer.stop()
             self.sim = None
-            self.start_button.setEnabled(True) # Включаем кнопку Start
-            self.stop_button.setEnabled(False) # Выключаем кнопку Stop
+            self.view.clear() # Очищаем содержимое GLViewWidget
+            self.frame_index = 0 #Сброс счётчика кадров
+            self.start_button.setEnabled(True)
+            self.stop_button.setEnabled(False)
         
     def create_graphics_items(self):
         ds = 100
