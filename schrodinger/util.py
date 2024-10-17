@@ -45,7 +45,6 @@ def dy_square(array_2d, n: int, step: float):
         result[i, n - 1] = array_2d[i, n - 2] - 2 * array_2d[i, n - 1]
     return result / (step**2)
 
-
 @njit(cache=True)
 def integrate(array_2d, n: int, step: float):
     """Вычисляет интеграл от функции двух переменных методом трапеций."""

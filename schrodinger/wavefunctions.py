@@ -54,7 +54,6 @@ def make_wavelines(wavedata, P=5000, axis=0, stride=4, smoothing=True):
 
     return points, colors
 
-
 def surf_smoothing(surf_data, smoothing=2):
     """
     Сглаживает данные поверхности с помощью RectBivariateSpline.

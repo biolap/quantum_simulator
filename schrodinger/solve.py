@@ -1,5 +1,3 @@
-import numpy as np
-import scipy.sparse as sp
 import scipy.sparse.linalg
 from schrodinger.util import to_vector, to_array, dx_square, dy_square
 
