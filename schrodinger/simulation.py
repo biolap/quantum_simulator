@@ -148,7 +148,7 @@ class Simulate:
         x = np.clip(x, -self.size / 2, self.size / 2)
         y = np.clip(y, -self.size / 2, self.size / 2)
 
-        cw = collapse_width / self.n  # Ширина коллапса
+        cw = collapse_width / self.n
         print(f">>> Collapsed to: x = {x}, y = {y}, collapse_width = {cw}")
         self.simulation_initialize(x0=x, y0=y, k_x=[0] * num_samples, k_y=[0] * num_samples, a_x=[cw] * num_samples, a_y=[cw] * num_samples)
 
@@ -192,7 +192,7 @@ class Simulate:
 
         if second_index is None:
             print("Warning: Could not find a second collapse point with sufficient distance.")
-            return (x1, y1), (x1, y1)  # Возвращаем одну и ту же точку, если не нашли вторую
+            return (x1, y1), (x1, y1)
 
 
         x2, y2 = np.unravel_index(second_index, (self.n, self.n))

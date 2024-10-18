@@ -1,7 +1,6 @@
 import scipy.sparse.linalg
 from schrodinger.util import to_vector, to_array, dx_square, dy_square
 
-
 def solve(wavefunction, potential_x, potential_y, hamiltonian_x, hamiltonian_y, n, step, dt):
     """
     Решает уравнение Шредингера одним шагом методом ADI.

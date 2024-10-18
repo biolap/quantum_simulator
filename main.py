@@ -52,11 +52,10 @@ class MainWindow(QWidget):
         self.start_button.clicked.connect(self.start_simulation)
 
         # Другие атрибуты
-        self.view = gl.GLViewWidget()  # Виджет для 3D-графики
-        layout.addWidget(self.view)  # Добавляем виджет в layout
+        self.view = gl.GLViewWidget()
+        layout.addWidget(self.view)
         self.timer = QTimer()
         self.timer.timeout.connect(self.update)
-
         self.sim = None
         self.frame_index = 0
         self.frames = None
@@ -75,7 +74,7 @@ class MainWindow(QWidget):
         self.do_smoothing = True
         self.layer = ""
 
-        # Graphics Items - создаём, но не добавляем в self.view
+        # Graphics Items
         self.sphere = gl.GLMeshItem(meshdata=gl.MeshData.sphere(rows=100, cols=100), smooth=True, glOptions='translucent')
         self.sphere.translate(5, -5, 0)
         self.sphere.scale(1000, 1000, 1000)
@@ -103,8 +102,8 @@ class MainWindow(QWidget):
         getattr(self.sim, scenario)()
         self.frames = self.sim.frames
         self.frame_index = 0
-        self.stop_button.setEnabled(True) # Включаем кнопку Stop
-        self.start_button.setEnabled(False) # Выключаем кнопку Start
+        self.stop_button.setEnabled(True)
+        self.start_button.setEnabled(False)
         self.create_graphics_items()
         self.timer.start(0)
         
@@ -113,8 +112,8 @@ class MainWindow(QWidget):
         if self.sim is not None:
             self.timer.stop()
             self.sim = None
-            self.view.clear() # Очищаем содержимое GLViewWidget
-            self.frame_index = 0 #Сброс счётчика кадров
+            self.view.clear()
+            self.frame_index = 0
             self.start_button.setEnabled(True)
             self.stop_button.setEnabled(False)
         
@@ -163,8 +162,8 @@ class MainWindow(QWidget):
         self.imag.translate(-2, 0, 0)
 
         self.view.setCameraPosition(distance=80)
-        self.view.resize(1200, 800)  # Устанавливаем размер виджета
-        self.view.setFixedSize(1200, 800)  # Фиксируем размер
+        self.view.resize(1200, 800)
+        self.view.setFixedSize(1200, 800)
     
     def update(self):
         print("update called")
@@ -211,7 +210,6 @@ class MainWindow(QWidget):
         if self.record and self.folder.exists():
             img = self.view.grabFramebuffer()
             img.save(str(self.folder / f"frame_{self.frame_index:04d}.png"))
-
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
