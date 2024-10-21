@@ -237,19 +237,19 @@ class Simulate:
         np.save(filename, wave_function)
         
     def collision(self):
-        self.simulation_initialize(x0=[0, 0], y0=[0, 1], k_x=[0, 0], k_y=[0, 90000], a_x=[1.2, 1.2], a_y=[1.2, 1.2])
+        self.simulation_initialize(x0=[0, 0], y0=[0, 1], k_x=[0, 0], k_y=[0, 90000], a_x=[2, 2], a_y=[2, 2])
 
     def collision1(self):
-        self.simulation_initialize(x0=[0, 0], y0=[0, 1.5], k_x=[10, 0], k_y=[0, 90000], a_x=[.15, .15], a_y=[.15, .15])
+        self.simulation_initialize(x0=[0, 0], y0=[0, 1.5], k_x=[10, 0], k_y=[0, 90000], a_x=[1.5, 1.5], a_y=[1.5, 1.5])
 
     def movement(self):
-        self.simulation_initialize(x0=[0], y0=[0], k_x=[5000], k_y=[2500], a_x=[.2], a_y=[.2])
+        self.simulation_initialize(x0=[0], y0=[0], k_x=[5000], k_y=[2500], a_x=[2], a_y=[2])
 
     def collapse_init(self):
-        self.simulation_initialize(x0=[0], y0=[0], k_x=[50], k_y=[25], a_x=[.25], a_y=[.25])
+        self.simulation_initialize(x0=[0], y0=[0], k_x=[50], k_y=[25], a_x=[1.25], a_y=[1.25])
 
     def collapse3(self):
-        self.simulation_initialize(x0=[0], y0=[0], k_x=[50], k_y=[25], a_x=[.28], a_y=[.28])
+        self.simulation_initialize(x0=[0], y0=[0], k_x=[50], k_y=[25], a_x=[1.28], a_y=[1.28])
 
     def entanglement(self):
-        self.simulation_initialize(x0=[0, 0], y0=[1, -1], k_x=[0, 0], k_y=[-3000, 3000], a_x=[.15, .15], a_y=[.15, .15])
+        self.simulation_initialize(x0=[0, 0], y0=[1, -1], k_x=[0, 0], k_y=[-3000, 3000], a_x=[1.15, 1.15], a_y=[1.15, 1.15])
