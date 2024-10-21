@@ -106,10 +106,12 @@ celerybeat.pid
 .venv
 .trunk
 .frames
+.github
 env/
 venv/
 frames/
 trunk/
+github/
 ENV/
 env.bak/
 venv.bak/
