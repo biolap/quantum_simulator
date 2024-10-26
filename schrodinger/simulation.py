@@ -237,7 +237,7 @@ class Simulate:
         np.save(filename, wave_function)
         
     def collision(self):
-        self.simulation_initialize(x0=[0, 0], y0=[0, 1], k_x=[0, 0], k_y=[0, 90000], a_x=[2, 2], a_y=[2, 2])
+        self.simulation_initialize(x0=[0, 0], y0=[0, 1], k_x=[0, 0], k_y=[0, 90000], a_x=[.2, .2], a_y=[.2, .2])
 
     def collision1(self):
         self.simulation_initialize(x0=[0, 0], y0=[0, 1.5], k_x=[10, 0], k_y=[0, 90000], a_x=[1.5, 1.5], a_y=[1.5, 1.5])
