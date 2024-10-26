@@ -1,12 +1,3 @@
-# import numpy as np
-# import scipy.sparse as sp
-# from time import perf_counter as pc
-# from time import time
-# from .field import Field
-# from pathlib import Path
-# from schrodinger.solve import solve
-# from schrodinger import util
-
 import numpy as np
 import scipy.sparse as sp
 from time import perf_counter as pc
@@ -98,7 +89,7 @@ class Simulate:
             self.wave_function = np.zeros((n, n), dtype=complex)
 
             for x0, y0, kx, ky, ax, ay in packets:
-                print(f"--- Initializing wave packet ---")
+                print("--- Initializing wave packet ---")
                 phase = np.exp(1j * (X * kx + Y * ky))
                 px = np.exp(-((x0 - X)**2) / (4 * ax**2))
                 py = np.exp(-((y0 - Y)**2) / (4 * ay**2))
@@ -122,11 +113,7 @@ class Simulate:
         step = self.step
         dt = self.dt
 
-        if self.time_dependent:
-            current_time = self.dt * self.counter
-        else:
-            current_time = 0
-
+        current_time = self.dt * self.counter if self.time_dependent else 0
         self.V_x = np.zeros(n * n, dtype='c16')
         for j in range(n):
             for i in range(n):
@@ -266,7 +253,7 @@ class Simulate:
         remaining_time_sec = int(round(remaining_time % 60))
 
         progress_bar = "[" + "#" * int(progress * progress_bar_length) + "-" * (progress_bar_length - int(progress * progress_bar_length)) + "]"
-        print(f"--- Simulation in progress: {''} ---")
+        print('--- Simulation in progress:  ---')
         print(f"{progress_bar}   {progress*100:.2f}%")
         print(f"Elapsed time: {elapsed_time:.1f} s")
         print(f"Estimated time remaining: {remaining_time_min}:{remaining_time_sec:02d}")

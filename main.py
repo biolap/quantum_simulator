@@ -252,7 +252,8 @@ class MainWindow(QWidget):
 
         scenario = self.scenario_combo.currentText()
 
-        if scenario == "Пользовательский":  # --- Пользовательские начальные условия ---
+        # --- Пользовательские начальные условия ---
+        if scenario == "Пользовательский":
             if self.initial_conditions_combo.currentIndex() == 0:  # Гауссиан
                 try:
                     gaussian_params = []
@@ -269,7 +270,10 @@ class MainWindow(QWidget):
                     print(f"Неверный ввод для параметров гауссиана: {e}")
                     return
             elif self.initial_conditions_combo.currentIndex() == 1:  # Загрузка из файла
-                if self.initial_wavefunction is not None:
+                if self.initial_wavefunction is None:
+                    print("Начальная волновая функция не загружена из файла.")
+                    return
+                else:
                     if self.initial_wavefunction.shape != (size, size):
                         print("Размерности загруженной волновой функции не соответствуют размеру симуляции.")
                         return
@@ -277,27 +281,22 @@ class MainWindow(QWidget):
                     self.sim.x_axis = np.linspace(-self.sim.size / 2, self.sim.size / 2, size)
                     self.sim.y_axis = np.linspace(-self.sim.size / 2, self.sim.size / 2, size)
                     self.sim.simulation_initialize()
-                else:
-                    print("Начальная волновая функция не загружена из файла.")
-                    return
-        else:  # --- Предопределенные сценарии ---
-
-            if scenario == "collision":
-                self.sim.collision()
-            elif scenario == "collision1":
-                self.sim.collision1()
-            elif scenario == "movement":
-                self.sim.movement()
-            elif scenario == "collapse_init":
-                self.sim.collapse_init()
-            elif scenario == "collapse3":
-                self.sim.collapse3()
-            elif scenario == "entanglement":
-                self.sim.entanglement()        
-            elif gaussian_params:  # Гауссиан, если не выбран базовый сценарий
-                self.sim.simulation_initialize(*gaussian_params) # Распаковываем параметры
-            elif self.initial_conditions_combo.currentIndex() == 1: # Загрузка из файла, если не выбран базовый сценарий
-                self.sim.simulation_initialize() # Инициализируем с загруженной волновой функцией
+        elif scenario == "collision":
+            self.sim.collision()
+        elif scenario == "collision1":
+            self.sim.collision1()
+        elif scenario == "movement":
+            self.sim.movement()
+        elif scenario == "collapse_init":
+            self.sim.collapse_init()
+        elif scenario == "collapse3":
+            self.sim.collapse3()
+        elif scenario == "entanglement":
+            self.sim.entanglement()
+        elif gaussian_params:  # Гауссиан, если не выбран базовый сценарий
+            self.sim.simulation_initialize(*gaussian_params) # Распаковываем параметры
+        elif self.initial_conditions_combo.currentIndex() == 1: # Загрузка из файла, если не выбран базовый сценарий
+            self.sim.simulation_initialize() # Инициализируем с загруженной волновой функцией
 
         self.frames = self.sim.frames
 
@@ -359,16 +358,12 @@ class MainWindow(QWidget):
         # Настройка графических элементов
         for elem in [self.real, self.imag, self.rhzn, self.ihzn]:
             elem.scale(1 / self.sim.n, 1 / self.sim.n, 1 / self.sim.n)
-            elem.translate(-.5, -.5, 0)
-            elem.scale(*(self.rescale,) * 3)
-            elem.translate(-self.rescale / 2, -self.rescale / 2, 0)
+            self._extracted_from_create_graphics_items_30(elem)
             elem.scale(1, 1, self.zscale)
 
         for elem in [self.surf]:
             elem.scale(1 / (self.sim.n * self.surf_smooth), 1 / (self.sim.n * self.surf_smooth), 1 / (self.sim.n * self.surf_smooth))
-            elem.translate(-.5, -.5, 0)
-            elem.scale(*(self.rescale,) * 3)
-            elem.translate(-self.rescale / 2, -self.rescale / 2, 0)
+            self._extracted_from_create_graphics_items_30(elem)
             elem.scale(1, 1, self.zscale * self.surf_smooth)
 
         self.imag.rotate(90, 0, 0, 1)
@@ -377,6 +372,12 @@ class MainWindow(QWidget):
         self.view.setCameraPosition(distance=80)
         self.view.resize(1200, 800)
         self.view.setFixedSize(1200, 800)
+
+    # TODO Rename this here and in `create_graphics_items`
+    def _extracted_from_create_graphics_items_30(self, elem):
+        elem.translate(-.5, -.5, 0)
+        elem.scale(*(self.rescale,) * 3)
+        elem.translate(-self.rescale / 2, -self.rescale / 2, 0)
         
     def update(self):
         if self.sim is None:
