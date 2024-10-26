@@ -1,3 +1,12 @@
+# import numpy as np
+# import scipy.sparse as sp
+# from time import perf_counter as pc
+# from time import time
+# from .field import Field
+# from pathlib import Path
+# from schrodinger.solve import solve
+# from schrodinger import util
+
 import numpy as np
 import scipy.sparse as sp
 from time import perf_counter as pc
@@ -14,7 +23,7 @@ class Simulate:
     FPS = 60
     DURATION = 5
 
-    def __init__(self, n, size=10, collapse=False, potential="0", obstacles="False", delta_t=0.005, verbose=False):
+    def __init__(self, n, size=10, collapse=False, potential="0", obstacles="False", delta_t=0.005, verbose=False, time_dependent=False):
         """Инициализирует симуляцию."""
         self.n = n
         self.size = size
@@ -22,6 +31,7 @@ class Simulate:
         self.frames = self.FPS * self.DURATION
         self.dt = delta_t / self.FPS if delta_t else 0.005
         self.step = self.size / self.n
+        self.time_dependent = time_dependent
 
         self.field = Field()
         self.field.set_potential(potential)
@@ -84,19 +94,25 @@ class Simulate:
         step = self.step
         dt = self.dt
 
+        if self.time_dependent:
+            current_time = self.dt * self.counter
+        else:
+            current_time = 0
+
         self.V_x = np.zeros(n * n, dtype='c16')
         for j in range(n):
             for i in range(n):
                 xx = i
                 yy = n * j
-                self.V_x[xx + yy] = self.field.get_potential(self.x_axis[j], self.y_axis[i]) if not self.field.is_obstacle(self.x_axis[j], self.y_axis[i]) else 1e10
+                self.V_x[xx + yy] = self.field.get_potential(self.x_axis[j], self.y_axis[i], current_time) if not self.field.is_obstacle(self.x_axis[j], self.y_axis[i]) else 1e10
 
         self.V_y = np.zeros(n * n, dtype='c16')
         for j in range(n):
             for i in range(n):
                 xx = j * n
                 yy = i
-                self.V_y[xx + yy] = self.field.get_potential(self.x_axis[i], self.y_axis[j]) if not self.field.is_obstacle(self.x_axis[i], self.y_axis[j]) else 1e10
+                self.V_y[xx + yy] = self.field.get_potential(self.x_axis[i], self.y_axis[j], current_time) if not self.field.is_obstacle(self.x_axis[i], self.y_axis[j]) else 1e10
+
 
         LAPLACE_MATRIX = sp.lil_matrix((-2 * sp.eye(n * n)))
         for i in range(n):
@@ -113,12 +129,58 @@ class Simulate:
 
         self.wave_function = solve(self.wave_function, self.V_x, self.V_y, self.HX, self.HY, self.n, self.step, self.dt)
 
-        print(f"Simulate frame: wave_function shape={self.wave_function.shape}")
-
         if debug:
             self.print_update()
+
         self.counter += 1
         return self.wave_function
+
+    # def simulate_frame(self, debug=True):
+    #     """Выполняет один шаг симуляции."""
+    #     if self.wave_function is None:
+    #         raise RuntimeError("Simulation not initialized. Call simulation_initialize() first.")
+
+    #     n = self.n
+    #     step = self.step
+    #     dt = self.dt
+    #     current_time = self.dt * self.counter # Calculate current time
+    #     self.V_x = np.zeros(n * n, dtype='c16')
+    #     for j in range(n):
+    #         for i in range(n):
+    #             xx = i
+    #             yy = n * j
+    #             self.V_x[xx + yy] = self.field.get_potential(self.x_axis[j], self.y_axis[i]) if not self.field.is_obstacle(self.x_axis[j], self.y_axis[i]) else 1e10
+
+    #     self.V_y = np.zeros(n * n, dtype='c16')
+    #     for j in range(n):
+    #         for i in range(n):
+    #             xx = j * n
+    #             yy = i
+    #             self.V_y[xx + yy] = self.field.get_potential(self.x_axis[i], self.y_axis[j]) if not self.field.is_obstacle(self.x_axis[i], self.y_axis[j]) else 1e10
+
+    #     LAPLACE_MATRIX = sp.lil_matrix((-2 * sp.eye(n * n)))
+    #     for i in range(n):
+    #         for j in range(n - 1):
+    #             k = i * n + j
+    #             LAPLACE_MATRIX[k, k + 1] = 1
+    #             LAPLACE_MATRIX[k + 1, k] = 1
+
+    #     LAPLACE_MATRIX = LAPLACE_MATRIX.tocsc()
+    #     LAPLACE_MATRIX = LAPLACE_MATRIX / (step**2)
+
+    #     self.HX = (sp.eye(n * n) - 1j * (dt / 2) * (LAPLACE_MATRIX - sp.diags(self.V_x, 0))).tocsc()
+    #     self.HY = (sp.eye(n * n) - 1j * (dt / 2) * (LAPLACE_MATRIX - sp.diags(self.V_y, 0))).tocsc()
+        
+    #     self.V_x[xx + yy] = self.field.get_potential(self.x_axis[j], self.y_axis[i], current_time) # Pass time
+
+    #     self.wave_function = solve(self.wave_function, self.V_x, self.V_y, self.HX, self.HY, self.n, self.step, self.dt)
+
+    #     print(f"Simulate frame: wave_function shape={self.wave_function.shape}")
+
+    #     if debug:
+    #         self.print_update()
+    #     self.counter += 1
+    #     return self.wave_function
 
     def collapse_wavefunction(self, num_samples=1, collapse_width=10):
         """

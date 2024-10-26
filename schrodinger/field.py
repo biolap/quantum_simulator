@@ -36,8 +36,7 @@ class Field:
             return bool(ne.evaluate(self.obstacle_func, local_dict={'x': x, 'y': y}))
         return False
 
-    def get_potential(self, x, y):
-        """Возвращает значение потенциала в точке (x, y)."""
+    def get_potential(self, x, y, t):  #  <--- Добавлен параметр t
         if self.potential_func:
-            return complex(ne.evaluate(self.potential_func, local_dict={'x': x, 'y': y}))
+            return complex(ne.evaluate(self.potential_func, local_dict={'x': x, 'y': y, 't': t})) # <--- Используем t
         return 0j
