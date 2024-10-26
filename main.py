@@ -1,6 +1,7 @@
 import sys
 import numpy as np
 import pyqtgraph.opengl as gl
+from matplotlib.cm import get_cmap
 import matplotlib.pyplot as plt
 from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QLabel,
                             QLineEdit, QComboBox, QPushButton, QCheckBox,
@@ -24,6 +25,27 @@ class MainWindow(QWidget):
         layout.addWidget(size_label)
         self.size_edit = QLineEdit("125")
         layout.addWidget(self.size_edit)
+        
+        # --- Выбор цветовой карты ---
+        layout.addWidget(QLabel("Цветовая карта:"))
+        self.colormap_combo = QComboBox()
+        self.colormap_combo.addItems(plt.colormaps())  # Добавляем все доступные цветовые карты matplotlib
+        layout.addWidget(self.colormap_combo)
+        self.colormap_combo.currentIndexChanged.connect(self.update_colormap) # Подключаем к слоту
+        
+        # --- Кнопки управления камерой ---
+        camera_controls_layout = QHBoxLayout()  # Layout для кнопок управления камерой
+        self.rotate_left_button = QPushButton("Вращать влево")
+        camera_controls_layout.addWidget(self.rotate_left_button)
+        self.rotate_right_button = QPushButton("Вращать вправо")
+        camera_controls_layout.addWidget(self.rotate_right_button)
+        self.zoom_in_button = QPushButton("Приблизить")
+        camera_controls_layout.addWidget(self.zoom_in_button)
+        self.zoom_out_button = QPushButton("Отдалить")
+        camera_controls_layout.addWidget(self.zoom_out_button)
+        self.reset_camera_button = QPushButton("Сброс камеры")
+        camera_controls_layout.addWidget(self.reset_camera_button)
+        layout.addLayout(camera_controls_layout) # Добавляем layout в основной layout
 
         # --- Слой ---
         layer_label = QLabel("Слой:")
@@ -61,7 +83,6 @@ class MainWindow(QWidget):
         self.time_dependent_checkbox = QCheckBox("Зависящий от времени потенциал")
         layout.addWidget(self.time_dependent_checkbox)
 
-
         # --- Начальные условия (Stacked Widget) ---
         initial_conditions_label = QLabel("Начальные условия:")
         layout.addWidget(initial_conditions_label)
@@ -96,7 +117,6 @@ class MainWindow(QWidget):
         self.num_packets_widget.setLayout(num_packets_layout)
         layout.addWidget(self.num_packets_widget)
         
-
         # --- Загрузка из файла ---
         self.file_input_widget = QWidget()
         file_input_layout = QVBoxLayout()
@@ -124,10 +144,18 @@ class MainWindow(QWidget):
         self.load_file_button.clicked.connect(self.load_initial_conditions_from_file)
         self.scenario_combo.currentIndexChanged.connect(self.update_scenario_options) # <--- Добавляем подключение
         self.num_packets_spinbox.valueChanged.connect(self.update_gaussian_params_widgets)
-
+        
+        self.rotate_left_button.clicked.connect(self.rotate_camera_left)  # <---  Подключаем кнопки
+        self.rotate_right_button.clicked.connect(self.rotate_camera_right)
+        self.zoom_in_button.clicked.connect(self.zoom_camera_in)
+        self.zoom_out_button.clicked.connect(self.zoom_camera_out)
+        self.reset_camera_button.clicked.connect(self.reset_camera)
+        
         # --- Другие атрибуты ---
         self.gl_widget_window = QWidget()
         self.gl_widget_window.setWindowTitle("Симуляция")
+        self.camera_distance = 80 # <---  Начальное расстояние камеры
+        self.cmap = plt.get_cmap('viridis') # Начальная цветовая карта
         self.view = gl.GLViewWidget()
         gl_layout = QVBoxLayout()
         gl_layout.addWidget(self.view)
@@ -213,6 +241,33 @@ class MainWindow(QWidget):
             self.num_packets_widget.show() # Показываем виджет выбора количества пакетов
         else: # Загрузка из файла
             self.num_packets_widget.hide() # Скрываем виджет выбора количества пакетов
+            
+    def update_colormap(self, index):
+        """Обновляет цветовую карту."""
+        cmap_name = self.colormap_combo.itemText(index)
+        self.cmap = get_cmap(cmap_name) # Получаем цветовую карту по имени
+
+        # Перерисовываем сцену (если симуляция уже запущена)
+        if self.sim:
+            self.update()  # Вызываем update для обновления графиков
+            
+    def rotate_camera_left(self):
+        self.view.orbit(-10, 0)  # Вращаем на -10 градусов по горизонтали
+
+    def rotate_camera_right(self):
+        self.view.orbit(10, 0)   # Вращаем на 10 градусов по горизонтали
+
+    def zoom_camera_in(self):
+        self.camera_distance -= 5
+        self.view.setCameraPosition(distance=self.camera_distance)
+
+    def zoom_camera_out(self):
+        self.camera_distance += 5
+        self.view.setCameraPosition(distance=self.camera_distance)
+
+    def reset_camera(self):
+        self.camera_distance = 80  # Сбрасываем расстояние камеры
+        self.view.setCameraPosition(distance=self.camera_distance, elevation=30, azimuth=45)  # <--- Добавляем elevation и azimuth
             
     def load_initial_conditions_from_file(self):
         # Открываем диалог выбора файла
