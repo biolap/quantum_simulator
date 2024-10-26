@@ -4,8 +4,9 @@ import pyqtgraph.opengl as gl
 import matplotlib.pyplot as plt
 from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QLabel,
                             QLineEdit, QComboBox, QPushButton, QCheckBox,
-                            QFileDialog)
+                            QFileDialog, QSpinBox, QTabWidget, QHBoxLayout, QStackedWidget)
 from PyQt6.QtCore import QTimer
+from PyQt6.QtGui import QDoubleValidator
 from pathlib import Path
 from schrodinger.simulation import Simulate
 from schrodinger.wavefunctions import make_wavelines, surf_smoothing
@@ -16,136 +17,202 @@ class MainWindow(QWidget):
         super().__init__()
         self.setWindowTitle("Квантовый симулятор волн")
 
-        # Виджеты
-        self.size_label = QLabel("Size:")
+        layout = QVBoxLayout()
+
+        # --- Размер сетки ---
+        size_label = QLabel("Размер сетки:")
+        layout.addWidget(size_label)
         self.size_edit = QLineEdit("125")
-        self.layer_label = QLabel("Layer:")
+        layout.addWidget(self.size_edit)
+
+        # --- Слой ---
+        layer_label = QLabel("Слой:")
+        layout.addWidget(layer_label)
         self.layer_combo = QComboBox()
         self.layer_combo.addItems(["", "real", "imag", "surf"])
+        layout.addWidget(self.layer_combo)
+
+        # --- Опции симуляции ---
         self.collapse_checkbox = QCheckBox("Collapse")
+        layout.addWidget(self.collapse_checkbox)
         self.smoothing_checkbox = QCheckBox("Smoothing")
+        layout.addWidget(self.smoothing_checkbox)
         self.record_checkbox = QCheckBox("Record")
-        self.start_button = QPushButton("Start")
-        self.stop_button = QPushButton("Stop")
-        self.stop_button.clicked.connect(self.stop_simulation)
-        self.stop_button.setEnabled(False)
+        layout.addWidget(self.record_checkbox)
+
+        # --- Сценарий ---
+        scenario_label = QLabel("Сценарий:")
+        layout.addWidget(scenario_label)
         self.scenario_combo = QComboBox()
-        self.scenario_combo.addItems(["collision", "collision1", "movement", "collapse_init", "collapse3", "entanglement"])
+        self.scenario_combo.addItems(["collision", "collision1", "movement", "collapse_init", "collapse3", "entanglement", "Пользовательский"])
+        layout.addWidget(self.scenario_combo)
+
+        # --- Путь сохранения ---
+        save_path_label = QLabel("Путь сохранения:")
+        layout.addWidget(save_path_label)
         self.save_path_edit = QLineEdit("./frames")
+        layout.addWidget(self.save_path_edit)
 
-        self.potential_label = QLabel("Потенциал:")
+        # --- Потенциал ---
+        potential_label = QLabel("Потенциал:")
+        layout.addWidget(potential_label)
         self.potential_edit = QLineEdit("0")
+        layout.addWidget(self.potential_edit)
         self.time_dependent_checkbox = QCheckBox("Зависящий от времени потенциал")
+        layout.addWidget(self.time_dependent_checkbox)
 
-        self.initial_conditions_label = QLabel("Начальные условия:")
+
+        # --- Начальные условия (Stacked Widget) ---
+        initial_conditions_label = QLabel("Начальные условия:")
+        layout.addWidget(initial_conditions_label)
+
+        self.initial_conditions_stack = QStackedWidget()
+
+        # --- Виджет для выбора типа начальных условий ---
+        self.initial_conditions_widget = QWidget()
+        initial_conditions_layout = QVBoxLayout()
+        initial_conditions_type_label = QLabel("Тип начальных условий:")
+        initial_conditions_layout.addWidget(initial_conditions_type_label)
         self.initial_conditions_combo = QComboBox()
         self.initial_conditions_combo.addItems(["Гауссиан", "Загрузить из файла"])
-        self.initial_conditions_combo.currentIndexChanged.connect(self.update_initial_condition_options)
+        initial_conditions_layout.addWidget(self.initial_conditions_combo)
+        self.initial_conditions_widget.setLayout(initial_conditions_layout)
+        self.initial_conditions_stack.addWidget(self.initial_conditions_widget)
 
-        self.gaussian_params_widget = QWidget()
-        gaussian_params_layout = QVBoxLayout()
-        self.x0_edit = QLineEdit("0")
-        self.y0_edit = QLineEdit("0")
-        self.kx_edit = QLineEdit("5000")
-        self.ky_edit = QLineEdit("2500")
-        self.ax_edit = QLineEdit(".2")
-        self.ay_edit = QLineEdit(".2")
-        gaussian_params_layout.addWidget(QLabel("x0:"))
-        gaussian_params_layout.addWidget(self.x0_edit)
-        gaussian_params_layout.addWidget(QLabel("y0:"))
-        gaussian_params_layout.addWidget(self.y0_edit)
-        gaussian_params_layout.addWidget(QLabel("kx:"))
-        gaussian_params_layout.addWidget(self.kx_edit)
-        gaussian_params_layout.addWidget(QLabel("ky:"))
-        gaussian_params_layout.addWidget(self.ky_edit)
-        gaussian_params_layout.addWidget(QLabel("ax:"))
-        gaussian_params_layout.addWidget(self.ax_edit)
-        gaussian_params_layout.addWidget(QLabel("ay:"))
-        gaussian_params_layout.addWidget(self.ay_edit)
-        self.gaussian_params_widget.setLayout(gaussian_params_layout)
+        # --- Параметры гауссовых пакетов (в закладках) ---
+        self.gaussian_params_tab_widget = QTabWidget()
+        self.initial_conditions_stack.addWidget(self.gaussian_params_tab_widget)
 
+        # --- Количество волновых пакетов ---
+        self.num_packets_widget = QWidget()
+        num_packets_layout = QHBoxLayout()
+        num_packets_label = QLabel("Количество волновых пакетов:")
+        num_packets_layout.addWidget(num_packets_label)
+        self.num_packets_spinbox = QSpinBox()
+        self.num_packets_spinbox.setMinimum(1)
+        self.num_packets_spinbox.setMaximum(5)
+        self.num_packets_spinbox.setValue(1)
+        num_packets_layout.addWidget(self.num_packets_spinbox)
+        self.num_packets_widget.setLayout(num_packets_layout)
+        layout.addWidget(self.num_packets_widget)
+        
+
+        # --- Загрузка из файла ---
         self.file_input_widget = QWidget()
         file_input_layout = QVBoxLayout()
         self.load_file_button = QPushButton("Загрузить файл")
-        self.load_file_button.clicked.connect(self.load_initial_conditions_from_file)
         file_input_layout.addWidget(self.load_file_button)
         self.file_input_widget.setLayout(file_input_layout)
+        self.initial_conditions_stack.addWidget(self.file_input_widget)
 
-        self.initial_conditions_stack = QWidget()
-        self.initial_conditions_stack_layout = QVBoxLayout()
-        self.initial_conditions_stack_layout.addWidget(self.gaussian_params_widget)
-        self.initial_conditions_stack_layout.addWidget(self.file_input_widget)
-        self.initial_conditions_stack.setLayout(self.initial_conditions_stack_layout)
-        self.file_input_widget.hide()
-
-        # Layout
-        layout = QVBoxLayout()
-        layout.addWidget(self.size_label)
-        layout.addWidget(self.size_edit)
-        layout.addWidget(self.layer_label)
-        layout.addWidget(self.layer_combo)
-        layout.addWidget(self.collapse_checkbox)
-        layout.addWidget(self.smoothing_checkbox)
-        layout.addWidget(self.record_checkbox)
-        layout.addWidget(QLabel("Scenario:"))
-        layout.addWidget(self.scenario_combo)
-        layout.addWidget(QLabel("Save Path:"))
-        layout.addWidget(self.save_path_edit)
-        layout.addWidget(self.start_button)
-        layout.addWidget(self.stop_button)
-        layout.addWidget(self.potential_label)
-        layout.addWidget(self.potential_edit)
-        layout.addWidget(self.time_dependent_checkbox)
-        layout.addWidget(self.initial_conditions_label)
-        layout.addWidget(self.initial_conditions_combo)
         layout.addWidget(self.initial_conditions_stack)
+        self.initial_conditions_stack.hide()
+
+        # --- Кнопки управления ---
+        self.start_button = QPushButton("Start")
+        layout.addWidget(self.start_button)
+        self.stop_button = QPushButton("Stop")
+        layout.addWidget(self.stop_button)
+        self.stop_button.setEnabled(False)
+
         self.setLayout(layout)
-        
-        # Подключения  <---  Этот блок должен быть здесь
+
+        # --- Подключения ---
         self.start_button.clicked.connect(self.start_simulation)
         self.stop_button.clicked.connect(self.stop_simulation)
+        self.initial_conditions_combo.currentIndexChanged.connect(self.update_initial_condition_options)
+        self.load_file_button.clicked.connect(self.load_initial_conditions_from_file)
+        self.scenario_combo.currentIndexChanged.connect(self.update_scenario_options) # <--- Добавляем подключение
+        self.num_packets_spinbox.valueChanged.connect(self.update_gaussian_params_widgets)
 
-        # Другие атрибуты
-        self.gl_widget_window = QWidget() # Окно для GLViewWidget
+        # --- Другие атрибуты ---
+        self.gl_widget_window = QWidget()
         self.gl_widget_window.setWindowTitle("Симуляция")
         self.view = gl.GLViewWidget()
         gl_layout = QVBoxLayout()
         gl_layout.addWidget(self.view)
         self.gl_widget_window.setLayout(gl_layout)
-
         self.timer = QTimer()
         self.timer.timeout.connect(self.update)
-        self.sim = None  # Объект симуляции
-        self.frame_index = 0 # Индекс текущего кадра
-        self.frames = None # Количество кадров
-        self.record = False # Запись видео
-        self.folder = None # Папка для сохранения
-        self.cmap = plt.get_cmap('viridis') # Цветовая карта
-        self.rescale = 1000 # Масштабирование
-        self.surf_smooth = 8 # Сглаживание поверхности
-        self.zscale = 10 # Масштабирование по Z
-        self.rcol_bias = 0.7  # Настройка цвета (real)
-        self.icol_bias = 0.3 # Настройка цвета (imag)
-        self.sec = 30 # Длительность видео (секунды)
-        self.fps = 30 # FPS видео
-        self.do_parallel = False # Параллельные вычисления (не используется)
-        self.do_collapse = False # Коллапс волновой функции (не используется)
-        self.do_smoothing = True # Сглаживание
-        self.layer = ""  # Слой для отображения
-        self.initial_wavefunction = None # Загруженная волновая функция
+        self.sim = None
+        self.frame_index = 0
+        self.frames = None
+        self.record = False
+        self.folder = None
+        self.cmap = plt.get_cmap('viridis')
+        self.rescale = 1000
+        self.surf_smooth = 8
+        self.zscale = 10
+        self.rcol_bias = 0.7
+        self.icol_bias = 0.3
+        self.sec = 30
+        self.fps = 30
+        self.do_parallel = False
+        self.do_collapse = False
+        self.do_smoothing = True
+        self.layer = ""
+        self.initial_wavefunction = None
+        self.gaussian_params_widgets = []  # Инициализируем пустой список
+        self.update_gaussian_params_widgets(self.num_packets_spinbox.value())  # Создаем виджеты для начального значения spinbox
+        self.update_initial_condition_options(self.initial_conditions_combo.currentIndex()) # Инициализация начального состояния виджетов
+    
+    def update_scenario_options(self, index):
+        """Обновляет видимость виджетов начальных условий в зависимости от выбранного сценария."""
+        if self.scenario_combo.itemText(index) == "Пользовательский":
+            self.initial_conditions_stack.show()
+            self.update_initial_condition_options(self.initial_conditions_combo.currentIndex())  # Обновляем видимость гауссовых параметров или загрузки из файла
+        else:
+            self.initial_conditions_stack.hide()
+    
+    def update_gaussian_params_widgets(self, num_packets):
+        """Обновляет виджеты параметров гауссовых пакетов."""
+
+        self.gaussian_params_tab_widget.clear()
+        self.gaussian_params_widgets.clear()
+
+        for i in range(num_packets):
+            packet_widget = QWidget()
+            packet_layout = QVBoxLayout(packet_widget)
+
+            x0_edit = QLineEdit("0")
+            y0_edit = QLineEdit("0")
+            kx_edit = QLineEdit("5000")
+            ky_edit = QLineEdit("2500")
+            ax_edit = QLineEdit(".2")
+            ay_edit = QLineEdit(".2")
+
+            # Создаем валидаторы для числовых полей
+            double_validator = QDoubleValidator()
+            x0_edit.setValidator(double_validator)
+            y0_edit.setValidator(double_validator)
+            kx_edit.setValidator(double_validator)
+            ky_edit.setValidator(double_validator)
+            ax_edit.setValidator(double_validator)
+            ay_edit.setValidator(double_validator)
+
+            packet_layout.addWidget(QLabel("x0:"))
+            packet_layout.addWidget(x0_edit)
+            packet_layout.addWidget(QLabel("y0:"))
+            packet_layout.addWidget(y0_edit)
+            packet_layout.addWidget(QLabel("kx:"))
+            packet_layout.addWidget(kx_edit)
+            packet_layout.addWidget(QLabel("ky:"))
+            packet_layout.addWidget(ky_edit)
+            packet_layout.addWidget(QLabel("ax:"))
+            packet_layout.addWidget(ax_edit)
+            packet_layout.addWidget(QLabel("ay:"))
+            packet_layout.addWidget(ay_edit)
 
 
-        # НЕ создаем графические элементы здесь.
-        # Они будут создаваться в start_simulation после инициализации self.sim
+            self.gaussian_params_tab_widget.addTab(packet_widget, f"Пакет {i+1}")
+            self.gaussian_params_widgets.append((x0_edit, y0_edit, kx_edit, ky_edit, ax_edit, ay_edit))
         
     def update_initial_condition_options(self, index):
-        # Переключаем видимость виджетов в зависимости от выбранного варианта
+        self.initial_conditions_stack.setCurrentIndex(index + 1)  # Переключаем stacked widget
         if index == 0:  # Гауссиан
-            self.gaussian_params_widget.show()
-            self.file_input_widget.hide()
-        elif index == 1:  # Загрузка из файла
-            self.gaussian_params_widget.hide()
-            self.file_input_widget.show()
+            self.num_packets_widget.show() # Показываем виджет выбора количества пакетов
+        else: # Загрузка из файла
+            self.num_packets_widget.hide() # Скрываем виджет выбора количества пакетов
             
     def load_initial_conditions_from_file(self):
         # Открываем диалог выбора файла
@@ -163,7 +230,7 @@ class MainWindow(QWidget):
     def start_simulation(self):
         size = int(self.size_edit.text())
 
-        try:  # Проверяем корректность ввода потенциала
+        try:
             potential_expr = self.potential_edit.text()
             test_x, test_y, test_t = 0, 0, 0
             test_potential = eval(potential_expr, {}, {'x': test_x, 'y': test_y, 't': test_t})
@@ -179,35 +246,58 @@ class MainWindow(QWidget):
                             verbose=True,
                             time_dependent=self.time_dependent_checkbox.isChecked())
 
-        if self.sim is None:  # Проверяем, что self.sim успешно создан
+        if self.sim is None:
             print("Ошибка: объект Simulate не инициализирован.")
             return
 
-        if self.initial_conditions_combo.currentIndex() == 0:  # Гауссиан
-            try:
-                x0 = [float(self.x0_edit.text())]
-                y0 = [float(self.y0_edit.text())]
-                kx = [float(self.kx_edit.text())]
-                ky = [float(self.ky_edit.text())]
-                ax = [float(self.ax_edit.text())]
-                ay = [float(self.ay_edit.text())]
-                self.sim.simulation_initialize(x0=x0, y0=y0, k_x=kx, k_y=ky, a_x=ax, a_y=ay)  # Инициализируем здесь для гауссиана
-            except ValueError as e:
-                print(f"Неверный ввод для параметров гауссиана: {e}") # Выводим конкретную ошибку
-                return
+        scenario = self.scenario_combo.currentText()
 
-        elif self.initial_conditions_combo.currentIndex() == 1:  # Загрузка из файла
-            if self.initial_wavefunction is not None:
-                if self.initial_wavefunction.shape != (size, size):
-                    print("Размерности загруженной волновой функции не соответствуют размеру симуляции.")
+        if scenario == "Пользовательский":  # --- Пользовательские начальные условия ---
+            if self.initial_conditions_combo.currentIndex() == 0:  # Гауссиан
+                try:
+                    gaussian_params = []
+                    for x0_edit, y0_edit, kx_edit, ky_edit, ax_edit, ay_edit in self.gaussian_params_widgets:
+                        x0 = float(x0_edit.text())
+                        y0 = float(y0_edit.text())
+                        kx = float(kx_edit.text())
+                        ky = float(ky_edit.text())
+                        ax = float(ax_edit.text())
+                        ay = float(ay_edit.text())
+                        gaussian_params.append((x0, y0, kx, ky, ax, ay))
+                    self.sim.simulation_initialize_multiple(*gaussian_params)
+                except ValueError as e:
+                    print(f"Неверный ввод для параметров гауссиана: {e}")
                     return
-                self.sim.wave_function = self.initial_wavefunction
-                self.sim.x_axis = np.linspace(-self.sim.size / 2, self.sim.size / 2, size)
-                self.sim.y_axis = np.linspace(-self.sim.size / 2, self.sim.size / 2, size)
-                self.sim.simulation_initialize() # Инициализируем здесь для загрузки из файла
-            else:
-                print("Начальная волновая функция не загружена из файла.")
-                return
+            elif self.initial_conditions_combo.currentIndex() == 1:  # Загрузка из файла
+                if self.initial_wavefunction is not None:
+                    if self.initial_wavefunction.shape != (size, size):
+                        print("Размерности загруженной волновой функции не соответствуют размеру симуляции.")
+                        return
+                    self.sim.wave_function = self.initial_wavefunction
+                    self.sim.x_axis = np.linspace(-self.sim.size / 2, self.sim.size / 2, size)
+                    self.sim.y_axis = np.linspace(-self.sim.size / 2, self.sim.size / 2, size)
+                    self.sim.simulation_initialize()
+                else:
+                    print("Начальная волновая функция не загружена из файла.")
+                    return
+        else:  # --- Предопределенные сценарии ---
+
+            if scenario == "collision":
+                self.sim.collision()
+            elif scenario == "collision1":
+                self.sim.collision1()
+            elif scenario == "movement":
+                self.sim.movement()
+            elif scenario == "collapse_init":
+                self.sim.collapse_init()
+            elif scenario == "collapse3":
+                self.sim.collapse3()
+            elif scenario == "entanglement":
+                self.sim.entanglement()        
+            elif gaussian_params:  # Гауссиан, если не выбран базовый сценарий
+                self.sim.simulation_initialize(*gaussian_params) # Распаковываем параметры
+            elif self.initial_conditions_combo.currentIndex() == 1: # Загрузка из файла, если не выбран базовый сценарий
+                self.sim.simulation_initialize() # Инициализируем с загруженной волновой функцией
 
         self.frames = self.sim.frames
 

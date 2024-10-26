@@ -84,6 +84,34 @@ class Simulate:
 
         self.start_time = pc()
         self.i_time = pc()
+        
+    def simulation_initialize_multiple(self, *packets):
+        """Инициализирует симуляцию с несколькими гауссовыми пакетами."""
+        try:
+            n = self.n
+            step = self.step
+            self.counter = 0
+            self.x_axis = np.linspace(-self.size / 2, self.size / 2, n)
+            self.y_axis = np.linspace(-self.size / 2, self.size / 2, n)
+            X, Y = np.meshgrid(self.x_axis, self.y_axis)
+
+            self.wave_function = np.zeros((n, n), dtype=complex)
+
+            for x0, y0, kx, ky, ax, ay in packets:
+                print(f"--- Initializing wave packet ---")
+                phase = np.exp(1j * (X * kx + Y * ky))
+                px = np.exp(-((x0 - X)**2) / (4 * ax**2))
+                py = np.exp(-((y0 - Y)**2) / (4 * ay**2))
+                wave_packet = phase * px * py
+                norm = np.sqrt(util.integrate(np.abs(wave_packet)**2, n, step))
+                print(f"  Norm for packet: {norm}")  # Отладочный вывод
+                self.wave_function += wave_packet / norm
+
+            self.start_time = pc()
+            self.i_time = pc()
+
+        except (ValueError, TypeError) as e: # Ловим возможные ошибки типов данных
+            print(f"Error in simulation_initialize_multiple: {e}")
 
     def simulate_frame(self, debug=True):
         """Выполняет один шаг симуляции."""
@@ -134,53 +162,6 @@ class Simulate:
 
         self.counter += 1
         return self.wave_function
-
-    # def simulate_frame(self, debug=True):
-    #     """Выполняет один шаг симуляции."""
-    #     if self.wave_function is None:
-    #         raise RuntimeError("Simulation not initialized. Call simulation_initialize() first.")
-
-    #     n = self.n
-    #     step = self.step
-    #     dt = self.dt
-    #     current_time = self.dt * self.counter # Calculate current time
-    #     self.V_x = np.zeros(n * n, dtype='c16')
-    #     for j in range(n):
-    #         for i in range(n):
-    #             xx = i
-    #             yy = n * j
-    #             self.V_x[xx + yy] = self.field.get_potential(self.x_axis[j], self.y_axis[i]) if not self.field.is_obstacle(self.x_axis[j], self.y_axis[i]) else 1e10
-
-    #     self.V_y = np.zeros(n * n, dtype='c16')
-    #     for j in range(n):
-    #         for i in range(n):
-    #             xx = j * n
-    #             yy = i
-    #             self.V_y[xx + yy] = self.field.get_potential(self.x_axis[i], self.y_axis[j]) if not self.field.is_obstacle(self.x_axis[i], self.y_axis[j]) else 1e10
-
-    #     LAPLACE_MATRIX = sp.lil_matrix((-2 * sp.eye(n * n)))
-    #     for i in range(n):
-    #         for j in range(n - 1):
-    #             k = i * n + j
-    #             LAPLACE_MATRIX[k, k + 1] = 1
-    #             LAPLACE_MATRIX[k + 1, k] = 1
-
-    #     LAPLACE_MATRIX = LAPLACE_MATRIX.tocsc()
-    #     LAPLACE_MATRIX = LAPLACE_MATRIX / (step**2)
-
-    #     self.HX = (sp.eye(n * n) - 1j * (dt / 2) * (LAPLACE_MATRIX - sp.diags(self.V_x, 0))).tocsc()
-    #     self.HY = (sp.eye(n * n) - 1j * (dt / 2) * (LAPLACE_MATRIX - sp.diags(self.V_y, 0))).tocsc()
-        
-    #     self.V_x[xx + yy] = self.field.get_potential(self.x_axis[j], self.y_axis[i], current_time) # Pass time
-
-    #     self.wave_function = solve(self.wave_function, self.V_x, self.V_y, self.HX, self.HY, self.n, self.step, self.dt)
-
-    #     print(f"Simulate frame: wave_function shape={self.wave_function.shape}")
-
-    #     if debug:
-    #         self.print_update()
-    #     self.counter += 1
-    #     return self.wave_function
 
     def collapse_wavefunction(self, num_samples=1, collapse_width=10):
         """
@@ -302,16 +283,16 @@ class Simulate:
         self.simulation_initialize(x0=[0, 0], y0=[0, 1], k_x=[0, 0], k_y=[0, 90000], a_x=[.2, .2], a_y=[.2, .2])
 
     def collision1(self):
-        self.simulation_initialize(x0=[0, 0], y0=[0, 1.5], k_x=[10, 0], k_y=[0, 90000], a_x=[1.5, 1.5], a_y=[1.5, 1.5])
+        self.simulation_initialize(x0=[0, 0], y0=[0, 1.5], k_x=[10, 0], k_y=[0, 90000], a_x=[.2, .2], a_y=[.2, .2])
 
     def movement(self):
-        self.simulation_initialize(x0=[0], y0=[0], k_x=[5000], k_y=[2500], a_x=[2], a_y=[2])
+        self.simulation_initialize(x0=[0], y0=[0], k_x=[5000], k_y=[2500], a_x=[.2], a_y=[.2])
 
     def collapse_init(self):
-        self.simulation_initialize(x0=[0], y0=[0], k_x=[50], k_y=[25], a_x=[1.25], a_y=[1.25])
+        self.simulation_initialize(x0=[0], y0=[0], k_x=[50], k_y=[25], a_x=[.25], a_y=[.25])
 
     def collapse3(self):
-        self.simulation_initialize(x0=[0], y0=[0], k_x=[50], k_y=[25], a_x=[1.28], a_y=[1.28])
+        self.simulation_initialize(x0=[0], y0=[0], k_x=[50], k_y=[25], a_x=[.28], a_y=[.28])
 
     def entanglement(self):
-        self.simulation_initialize(x0=[0, 0], y0=[1, -1], k_x=[0, 0], k_y=[-3000, 3000], a_x=[1.15, 1.15], a_y=[1.15, 1.15])
+        self.simulation_initialize(x0=[0, 0], y0=[1, -1], k_x=[0, 0], k_y=[-3000, 3000], a_x=[.15, .15], a_y=[.15, .15])
